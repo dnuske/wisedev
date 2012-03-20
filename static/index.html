@@ -10,106 +10,19 @@
 <script src="jquery.js"></script>
 <script>
 
-var timestamp = null;
-function comet() {
-    $.ajax({
-        type : 'Get',
-        url  : 'read.php?timestamp=' + timestamp,
-        async : true,
-        cache : false,
 
-        success : function(data) {
-                    var json = eval('(' + data + ')');
-                    if(json['msg'] == ''){
-                        $('#msg').html('No msg');
-                    }else {
-                        $('#msg').html(json['msg']);
-                        $('#msg').animate({scrollTop: $('#msg').get(0).scrollHeight},200);
-                    }
-                    timestamp  = json['timestamp'];
-                    setTimeout('comet()', 1000);
-        },
-        error : function(XMLHttpRequest, textstatus, error) {
-                    alert(error);
-                    setTimeout('comet()', 15000);
-        }
-    });
-}
-
-$(function() {
-    comet();
-    $('#send').bind('keyup', function(e) {
-        var msg = $(this).val();
-        if(e.keyCode == 13 && e.shiftKey) {
-            return ;
-        }else if(msg!='' && e.keyCode == 13) {
-            $.ajax({
-                type : 'GET',
-                url  : 'write.php?msg='+ msg.replace(/\n/g,'<br />'),
-                async : true,
-                cache : false
-            });
-            $(this).val('')
-        }
-    })
-});
-
-//#client
-//server.execute(code)
-//server.callMethod(method, params)
-
-server = {
-
-    execute: function(code){
-        return serverCommand('execute', code)
-    }
-}
-
-function serverCommand(method, params){
-    var pepe = 'a'
-    $.ajax({
-        type : 'GET',
-        url  : 'server?method='+ method +'&params='+ encodeURIComponent(params),
-        async : false,
-        cache : false,
-        success: function(data){ pepe = data }
-    });
-    alert(pepe)
-    return pepe
-}
-
-
-
+//message manipulation
 
 Message = {
-    send_message: function(messageName,content){
-        var vomessage = new VO_Message;
-
-        vomessage = {
-            name: messageName,
-            content: content
-            }
-        var pepe;
-        $.ajax({
-            type : 'GET',
-            url  : 'server/message?name='+ vomessage.name +'&content='+ vomessage.getEncodedContent(),
-            async : false,
-            cache : false,
-            success: function(data){
-                pepe = data
-                }
-        });
-        alert(pepe)
-        return pepe
-        }
     }
 
+var VO_BaseMessage;
 var VO_Message;
 var VO_MessageResponse;
 
 VO_BaseMessage = function(name,content){
-    self.prototype.name = name
-    self.prototype.content = content
+    self.prototype.name = name;
+    self.prototype.content = content;
     }
 
 VO_Message = {
@@ -120,11 +33,152 @@ VO_Message = {
 }
 
 VO_MessageResponse = {
-    name:'',
-    content:'',
+    prototype: VO_BaseMessage.prototype,
     date:'',
     elapsedTime:''
     }
+
+
+
+
+//server API consumer
+
+
+
+//I don't know the use of this'
+var timestamp = null;
+
+
+
+
+Server = {
+	execute: function(code){
+        vor = Message.send_message('execute', code);
+        return vor.content
+    },
+    send_message: function(messageName,content){
+        var vomessage = new VO_Message(messageName,content);
+        var vomessager = new VO_MessageResponse(messageName, '');
+
+        $.ajax({
+            type : 'GET',
+            url  : 'server/message?name='+ vomessage.name +'&content='+ vomessage.getEncodedContent(),
+            async : false,
+            cache : false,
+            success: function(data){
+                vomessager.content = data;
+                }
+        });
+        return vomessager;
+      },
+    startListening: function() {
+	    $.ajax({
+	        type : 'Get',
+	        url  : 'server/event?timestamp=' + timestamp,
+	        async : true,
+	        cache : false,
+	
+	        success : function(data) {
+	                    var json = eval('(' + data + ')');
+	                    if(json['msg'] == ''){
+	                        $('#msg').html('No msg');
+	                    }else {
+	                        $('#msg').html(json['msg']);
+	                        $('#msg').animate({scrollTop: $('#msg').get(0).scrollHeight},200);
+	                    }
+	                    timestamp  = json['timestamp'];
+	                    setTimeout('self.startListening()', 1000);
+	        },
+	        error : function(XMLHttpRequest, textstatus, error) {
+	                    alert(error);
+	                    setTimeout('self.startListening()', 15000);
+	        }
+	    });
+	},
+	execute:null,
+	callMethod:null,
+}
+
+
+Client = {
+	
+	
+	
+} 
+
+
+
+
+client.enableFocus = function(){
+	bind('click', client.focus);
+}
+
+client.disableFocus = function(){
+	bind('click', client.focus);
+	client.erase(currentFocus)
+}
+
+client.focus = function(obj){
+	client.currentFocus = obj; 
+}
+
+client.enableSelect = function(){
+	bind('mouseDown', initSelect);
+	bind('mouseUp', endSelect);
+}
+
+client.initSelect = function(obj){
+	client.iniSel = client.mouse.position
+}
+
+client.endSelect = function(obj){
+	client.endSel = client.mouse.position
+	client.drawRect(client.iniSel, client.endSel)
+	client.selectedRect = Rect(client.iniSel, client.endSel)
+}
+
+
+client.cut = function(){
+	rect = client.selectedRect;
+	rec = server.cutImage(img,rect);
+	filename = client.ask('que nombre le ponemos al archivo?', 'recorte1.jpg');
+	server.saveFile(rec);
+}
+
+client.upload = function(){
+	nm = client.ask('nombre?', 'filename'):
+	server.saveFile('uploadFolder', nm);
+	client.tell('file uploaded');
+}
+
+
+
+
+
+$(function() {
+	Server.startListening();
+
+/*
+	//just bind the send button for sending code to server
+	$('#send').bind('keyup', function(e) {
+	    var msg = $(this).val();
+	    if(e.keyCode == 13 && e.shiftKey) {
+	        return ;
+	    }else if(msg!='' && e.keyCode == 13) {
+	        $.ajax({
+	            type : 'GET',
+	            url  : 'write.php?msg='+ msg.replace(/\n/g,'<br />'),
+	            async : true,
+	            cache : false
+	        });
+	        $(this).val('')
+	    }
+	})
+*/
+
+}
+
+
 
 
 

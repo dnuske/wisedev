@@ -9,9 +9,11 @@ class MainHandler(tornado.web.RequestHandler):
     def __init__(self):
         super(MainHandler, self).__init__()
 
-class read(tornado.web.RequestHandler):
+class server(tornado.web.RequestHandler):
     def get(self):
+        #/message
         ret = com.read(self.get_argument('timestamp'))
+        
         self.write(ret)
 
 class write(tornado.web.RequestHandler):
@@ -41,19 +43,39 @@ class StoryHandler(tornado.web.RequestHandler):
 
 
 
+#            method = self.get_argument('method')
+#            params = self.get_argument('params')
+#    
+#            res = getattr(server, method)(params)
+#    
+#            self.write(str(res))
 
 
 import server
 class serverr(tornado.web.RequestHandler):
-    def get(self):
-        ret = com.write({'msg':self.request.query})
-
-        method = self.get_argument('method')
-        params = self.get_argument('params')
-
-        res = getattr(server, method)(params)
-
-        self.write(str(res))
+    def get(self, method):
+        if method == 'message':
+            ret = messageLog.write({'msg':self.request.query})
+    
+            method = self.get_argument('method')
+            params = self.get_argument('params')
+    
+            res = getattr(server, method)(params)
+    
+            self.write(str(res))
+        if method == 'event':
+            ret = com.write({'msg':self.request.query})
+    
+            method = self.get_argument('method')
+            params = self.get_argument('params')
+    
+            res = getattr(server, method)(params)
+    
+            self.write(str(res))
+        else:
+            self.write('unknown method')
+        
+        
 
 application = tornado.web.Application([
     (r"/read.php", read),
@@ -61,7 +83,7 @@ application = tornado.web.Application([
     (r"/", index),
     (r"/jquery.js", jqueryjs),
     (r"/story/([0-9]+)", StoryHandler),
-    (r"/server", serverr),
+    (r"/server/([A-Z][a-z][0-9]+)", serverr),
 ])
 
 
